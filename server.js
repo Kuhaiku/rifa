@@ -6,8 +6,6 @@ const path = require('path');
 const app = express();
 app.use(cors());
 app.use(express.json());
-
-// Permite que o site carregue a imagem template.jpg da sua pasta
 app.use(express.static(__dirname));
 
 app.get('/', (req, res) => {
@@ -15,7 +13,7 @@ app.get('/', (req, res) => {
 });
 
 const pool = mysql.createPool({
-    host: 'www_riffaa', // Host do Easypanel
+    host: 'www_riffaa', 
     user: 'mysql', 
     password: 'Raposo88125442@@', 
     database: 'riffa', 
@@ -68,6 +66,17 @@ app.post('/tickets', async (req, res) => {
         res.status(400).json({ error: 'Erro: Um ou mais números já foram vendidos.' });
     } finally {
         connection.release();
+    }
+});
+
+// NOVA ROTA: Estornar/Excluir uma venda
+app.delete('/tickets/:number', async (req, res) => {
+    const { number } = req.params;
+    try {
+        await pool.query('DELETE FROM tickets WHERE number = ?', [number]);
+        res.json({ success: true, message: `Número ${number} liberado com sucesso!` });
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao cancelar a venda.' });
     }
 });
 

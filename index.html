@@ -50,7 +50,8 @@
         .available { background: var(--card-bg); color: var(--text-main); border: 1px solid var(--border); }
         .available:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         .selected { background: var(--warning); color: white; border: 1px solid var(--warning); transform: scale(1.05); }
-        .sold { background: var(--danger); color: white; border: 1px solid var(--danger); cursor: not-allowed; opacity: 0.9; }
+        .sold { background: var(--danger); color: white; border: 1px solid var(--danger); opacity: 0.9; }
+        .sold:hover { background: #b91c1c; border-color: #b91c1c; transform: translateY(-2px); }
         
         .highlight { box-shadow: 0 0 0 3px var(--card-bg), 0 0 0 6px var(--primary); transform: scale(1.1); z-index: 10; position: relative; }
         .dimmed { opacity: 0.15; filter: grayscale(100%); }
@@ -169,7 +170,9 @@
             div.textContent = i; 
             if (soldTickets[i]) {
                 div.classList.add('sold');
-                div.title = `Vendido para: ${soldTickets[i].name}`;
+                div.title = `Vendido para: ${soldTickets[i].name}. Clique para cancelar a venda.`;
+                // NOVA FUNÇÃO: Clicar no número vermelho permite cancelar
+                div.onclick = () => confirmarEstorno(i, soldTickets[i].name);
             } else {
                 div.classList.add('available');
                 if (selectedNumbers.has(i)) div.classList.add('selected');
@@ -179,6 +182,24 @@
         }
         calcularPreco();
         atualizarInputManual();
+    }
+
+    // NOVA FUNÇÃO: Cancela a venda se confirmado pelo usuário
+    async function confirmarEstorno(numero, nome) {
+        if (confirm(`Atenção: Deseja realmente CANCELAR a venda do número ${numero} para ${nome}?`)) {
+            try {
+                const res = await fetch(`/tickets/${numero}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (data.success) {
+                    showMsg(data.message, "success");
+                    loadTickets();
+                } else {
+                    showMsg(data.error, "error");
+                }
+            } catch (err) {
+                showMsg("Erro ao tentar cancelar a venda.", "error");
+            }
+        }
     }
 
     function calcularPreco() {
@@ -269,11 +290,11 @@
             canvas.height = img.height;
             ctx.drawImage(img, 0, 0);
 
-            // Ajustes finos aplicados
-            const startX = img.width * 0.05;    
-            const endX = img.width * 0.95;      
-            const startY = img.height * 0.31;   
-            const endY = img.height * 0.65;     
+            // SEUS VALORES EXATOS AQUI
+            const startX = img.width * 0.008;
+            const endX = img.width * 0.9840000000000001;
+            const startY = img.height * 0.326;
+            const endY = img.height * 0.638;    
             
             const gridW = endX - startX;
             const gridH = endY - startY;
