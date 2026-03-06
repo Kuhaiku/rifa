@@ -6,12 +6,21 @@ const path = require('path');
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Permite que o servidor entregue arquivos estáticos (como a sua template.jpg)
 app.use(express.static(__dirname));
 
+// ROTA DA TELA PRINCIPAL (Painel de Vendas)
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// NOVA ROTA: TELA DO SORTEIO
+app.get('/sorteio', (req, res) => {
+    res.sendFile(path.join(__dirname, 'sorteio.html'));
+});
+
+// Configuração do Banco de Dados (Easypanel)
 const pool = mysql.createPool({
     host: 'www_riffaa', 
     user: 'mysql', 
@@ -23,6 +32,7 @@ const pool = mysql.createPool({
     queueLimit: 0
 });
 
+// Função para iniciar a tabela do banco de dados no estado zero
 async function initDb() {
     try {
         await pool.query(`
@@ -34,6 +44,7 @@ async function initDb() {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
+        // Garante que a coluna de contato exista
         try { await pool.query(`ALTER TABLE tickets ADD COLUMN contact VARCHAR(50)`); } catch (e) { }
         console.log("Banco de dados pronto.");
     } catch (err) {
@@ -42,6 +53,7 @@ async function initDb() {
 }
 setTimeout(initDb, 2000); 
 
+// ROTA: Listar todas as vendas registradas
 app.get('/tickets', async (req, res) => {
     try {
         const [rows] = await pool.query('SELECT number, buyer_name, contact FROM tickets');
@@ -51,14 +63,20 @@ app.get('/tickets', async (req, res) => {
     }
 });
 
+// ROTA: Registrar uma nova venda
 app.post('/tickets', async (req, res) => {
     const { numbers, buyer_name, contact } = req.body;
-    if (!numbers || numbers.length === 0 || !buyer_name) return res.status(400).json({ error: 'Preencha o nome e selecione os números.' });
+    
+    if (!numbers || numbers.length === 0 || !buyer_name) {
+        return res.status(400).json({ error: 'Preencha o nome e selecione os números.' });
+    }
 
     const connection = await pool.getConnection();
     try {
         await connection.beginTransaction();
-        for (let num of numbers) await connection.query('INSERT INTO tickets (number, buyer_name, contact) VALUES (?, ?, ?)', [num, buyer_name, contact || '']);
+        for (let num of numbers) {
+            await connection.query('INSERT INTO tickets (number, buyer_name, contact) VALUES (?, ?, ?)', [num, buyer_name, contact || '']);
+        }
         await connection.commit();
         res.json({ success: true, message: 'Venda registrada com sucesso!' });
     } catch (err) {
@@ -69,7 +87,7 @@ app.post('/tickets', async (req, res) => {
     }
 });
 
-// NOVA ROTA: Estornar/Excluir uma venda
+// ROTA: Estornar/Excluir uma venda específica
 app.delete('/tickets/:number', async (req, res) => {
     const { number } = req.params;
     try {
@@ -80,4 +98,5 @@ app.delete('/tickets/:number', async (req, res) => {
     }
 });
 
+// Inicia o servidor
 app.listen(3000, () => console.log('Backend rodando na porta 3000'));

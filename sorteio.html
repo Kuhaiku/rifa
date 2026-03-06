@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sorteio da Rifa</title>
+    <style>
+        :root {
+            --primary: #4361ee; --primary-hover: #3a53d0;
+            --success: #10b981; --gold: #f59e0b;
+            --bg-color: #f8fafc; --card-bg: #ffffff;
+            --text-main: #1e293b; --text-muted: #64748b; --border: #e2e8f0;
+        }
+
+        body { 
+            font-family: system-ui, -apple-system, sans-serif; 
+            background-color: var(--bg-color); 
+            color: var(--text-main); 
+            margin: 0; 
+            padding: 20px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container { 
+            background: var(--card-bg); 
+            padding: 40px; 
+            border-radius: 16px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08); 
+            max-width: 500px; 
+            width: 100%; 
+            text-align: center; 
+            box-sizing: border-box;
+        }
+
+        h2 { margin: 0 0 5px 0; font-size: 28px; font-weight: 800; color: var(--text-main); }
+        .subtitle { font-size: 14px; color: var(--text-muted); margin-bottom: 30px; }
+
+        .roulette-box { 
+            background: var(--bg-color); 
+            border: 4px solid var(--border); 
+            border-radius: 20px; 
+            height: 160px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            margin: 30px 0; 
+            font-size: 80px; 
+            font-weight: 900; 
+            color: var(--text-main); 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+        }
+
+        .roulette-box.winner { 
+            border-color: var(--gold); 
+            color: var(--gold); 
+            transform: scale(1.05); 
+            box-shadow: 0 0 40px rgba(245, 158, 11, 0.3); 
+        }
+
+        button { 
+            width: 100%; 
+            padding: 16px; 
+            background: var(--primary); 
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 18px; 
+            font-weight: 700; 
+            transition: all 0.2s; 
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        button:hover:not(:disabled) { background: var(--primary-hover); transform: translateY(-2px); }
+        button:active:not(:disabled) { transform: translateY(1px); }
+        button:disabled { background: var(--border); color: var(--text-muted); cursor: not-allowed; }
+
+        .winner-info { margin-top: 25px; opacity: 0; transform: translateY(10px); transition: all 0.5s; display: none; }
+        .winner-info.show { opacity: 1; transform: translateY(0); display: block; }
+        .winner-name { font-size: 24px; font-weight: 800; color: var(--success); }
+        .winner-contact { font-size: 16px; color: var(--text-muted); margin-top: 8px; font-weight: 500;}
+
+        .nav-link { 
+            margin-top: 30px; 
+            display: inline-block; 
+            color: var(--primary); 
+            text-decoration: none; 
+            font-weight: 600; 
+            font-size: 14px;
+        }
+        .nav-link:hover { text-decoration: underline; }
+
+        /* Confete simples via CSS */
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .pop-animation { animation: pop 0.5s ease-in-out; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🎉 Grande Sorteio</h2>
+    <div class="subtitle" id="statsDisplay">Carregando participantes...</div>
+
+    <div class="roulette-box" id="displayNumber">--</div>
+
+    <button id="btnSortear" onclick="iniciarSorteio()" disabled>Sortear Ganhador</button>
+
+    <div class="winner-info" id="winnerInfo">
+        <div style="font-size: 14px; color: var(--text-muted); text-transform: uppercase; font-weight: bold; margin-bottom: 5px;">Ganhador(a)</div>
+        <div class="winner-name" id="winnerName">Nome</div>
+        <div class="winner-contact" id="winnerContact">Contato</div>
+    </div>
+</div>
+
+<a href="/" class="nav-link">← Voltar para o Painel de Vendas</a>
+
+<script>
+    let ticketsVendidos = [];
+
+    async function carregarDados() {
+        try {
+            const res = await fetch('/tickets');
+            ticketsVendidos = await res.json();
+            
+            const stats = document.getElementById('statsDisplay');
+            const btn = document.getElementById('btnSortear');
+
+            if (ticketsVendidos.length === 0) {
+                stats.textContent = "Nenhum número foi vendido ainda.";
+                btn.disabled = true;
+            } else {
+                stats.textContent = `${ticketsVendidos.length} números concorrendo!`;
+                btn.disabled = false;
+            }
+        } catch (err) {
+            document.getElementById('statsDisplay').textContent = "Erro ao carregar dados do servidor.";
+        }
+    }
+
+    function iniciarSorteio() {
+        if (ticketsVendidos.length === 0) return;
+
+        const btn = document.getElementById('btnSortear');
+        const display = document.getElementById('displayNumber');
+        const winnerInfo = document.getElementById('winnerInfo');
+        
+        // Reseta o visual
+        btn.disabled = true;
+        display.classList.remove('winner');
+        winnerInfo.classList.remove('show');
+        document.body.classList.remove('pop-animation');
+
+        let counter = 0;
+        const tempoSorteio = 3000; // 3 segundos de suspense
+        const intervaloTique = 50; // Troca o número a cada 50ms
+
+        // Efeito de roleta
+        const roleta = setInterval(() => {
+            const randomTicket = ticketsVendidos[Math.floor(Math.random() * ticketsVendidos.length)];
+            display.textContent = randomTicket.number;
+            counter += intervaloTique;
+
+            if (counter >= tempoSorteio) {
+                clearInterval(roleta);
+                revelarGanhador();
+            }
+        }, intervaloTique);
+    }
+
+    function revelarGanhador() {
+        // Seleciona o vencedor final de forma segura
+        const vencedor = ticketsVendidos[Math.floor(Math.random() * ticketsVendidos.length)];
+        
+        const display = document.getElementById('displayNumber');
+        const winnerInfo = document.getElementById('winnerInfo');
+        const btn = document.getElementById('btnSortear');
+
+        // Atualiza a tela
+        display.textContent = vencedor.number;
+        display.classList.add('winner');
+        document.body.classList.add('pop-animation');
+        
+        document.getElementById('winnerName').textContent = vencedor.buyer_name;
+        document.getElementById('winnerContact').textContent = vencedor.contact ? `📞 ${vencedor.contact}` : 'Sem contato cadastrado';
+        
+        winnerInfo.classList.add('show');
+        btn.disabled = false;
+        btn.textContent = "Sortear Novamente";
+    }
+
+    // Inicializa
+    carregarDados();
+</script>
+
+</body>
+</html>
