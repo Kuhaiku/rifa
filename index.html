@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Rifa</title>
+    <style>
+        :root {
+            --primary: #4361ee; --primary-hover: #3a53d0;
+            --success: #10b981; --success-hover: #059669;
+            --danger: #ef4444; --warning: #f59e0b;
+            --bg-color: #f8fafc; --card-bg: #ffffff;
+            --text-main: #1e293b; --text-muted: #64748b; --border: #e2e8f0;
+        }
+
+        body { font-family: system-ui, -apple-system, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 30px 15px; display: flex; flex-direction: column; align-items: center; }
+        .container { background: var(--card-bg); padding: 25px 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); max-width: 850px; width: 100%; box-sizing: border-box; }
+        h2 { text-align: center; font-size: 24px; font-weight: 700; margin: 0 0 25px 0; color: var(--text-main); }
+        
+        .panels { display: flex; gap: 25px; margin-bottom: 25px; }
+        .panel { flex: 1; padding: 20px; background: var(--bg-color); border: 1px solid var(--border); border-radius: 10px; display: flex; flex-direction: column; }
+        .panel h3 { margin: 0 0 15px 0; font-size: 16px; font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
+        
+        input[type="text"], input[type="search"] { width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; box-sizing: border-box; transition: all 0.2s; background: var(--card-bg); }
+        input[type="text"]:focus, input[type="search"]:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15); }
+
+        button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 15px; font-weight: 600; transition: all 0.2s; margin-top: auto; }
+        button:hover { background: var(--primary-hover); transform: translateY(-1px); }
+        button:active { transform: translateY(1px); }
+        
+        .btn-whatsapp { background: var(--success); margin-top: 20px; font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-whatsapp:hover { background: var(--success-hover); }
+
+        .price-tag { font-size: 18px; font-weight: 700; color: var(--success); text-align: right; margin: 5px 0 15px 0; }
+        
+        .buyer-list { flex-grow: 1; border-radius: 6px; max-height: 170px; overflow-y: auto; margin-bottom: 10px; display: flex; flex-direction: column; gap: 6px; }
+        .buyer-list::-webkit-scrollbar { width: 6px; }
+        .buyer-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+        .buyer-item { padding: 12px; background: var(--card-bg); border: 1px solid var(--border); border-left: 4px solid transparent; border-radius: 6px; cursor: pointer; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.02); }
+        .buyer-item:hover { border-color: var(--border); border-left-color: var(--primary); transform: translateX(4px); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .buyer-item.active-buyer { background-color: rgba(67, 97, 238, 0.08); border-left-color: var(--primary); border-color: var(--primary); }
+
+        .buyer-name { font-weight: 600; color: var(--text-main); font-size: 14px; }
+        .buyer-info { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+        
+        .grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 10px; margin-top: 10px; padding-top: 20px; border-top: 1px solid var(--border); }
+        .number { display: flex; justify-content: center; align-items: center; height: 45px; border-radius: 8px; cursor: pointer; user-select: none; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); font-size: 15px; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        
+        .available { background: var(--card-bg); color: var(--text-main); border: 1px solid var(--border); }
+        .available:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .selected { background: var(--warning); color: white; border: 1px solid var(--warning); transform: scale(1.05); }
+        .sold { background: var(--danger); color: white; border: 1px solid var(--danger); cursor: not-allowed; opacity: 0.9; }
+        
+        .highlight { box-shadow: 0 0 0 3px var(--card-bg), 0 0 0 6px var(--primary); transform: scale(1.1); z-index: 10; position: relative; }
+        .dimmed { opacity: 0.15; filter: grayscale(100%); }
+
+        .message-container { position: fixed; top: 20px; right: 20px; z-index: 1000; }
+        .message { padding: 12px 24px; border-radius: 6px; font-weight: 500; font-size: 14px; color: white; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transform: translateX(120%); transition: transform 0.3s ease-out; display: none; }
+        .message.show { transform: translateX(0); display: block; }
+        .success { background-color: var(--success); }
+        .error { background-color: var(--danger); }
+
+        @media (max-width: 600px) { .panels { flex-direction: column; } .grid { grid-template-columns: repeat(5, 1fr); } }
+    </style>
+</head>
+<body>
+
+<div class="message-container">
+    <div class="message" id="feedbackMsg"></div>
+</div>
+
+<div class="container">
+    <h2>Registro de Rifa</h2>
+    
+    <div class="panels">
+        <div class="panel">
+            <h3>🛒 Nova Venda</h3>
+            <input type="text" id="buyerName" placeholder="Nome do Comprador" autocomplete="off">
+            <input type="text" id="buyerContact" placeholder="Telefone (Opcional)" autocomplete="off">
+            <input type="text" id="manualNumbers" placeholder="Números (ex: 1, 20, 50)" onkeyup="syncFromInput()" autocomplete="off">
+            <div class="price-tag" id="priceDisplay">R$ 0,00</div>
+            <button onclick="registrarVenda()">Confirmar Registro</button>
+        </div>
+
+        <div class="panel">
+            <h3>🔍 Buscar e Filtrar</h3>
+            <input type="search" id="searchName" placeholder="Buscar comprador..." oninput="buscarComprador()" autocomplete="off">
+            <div id="buyerList" class="buyer-list"></div>
+            <div style="font-size: 12px; color: var(--text-muted); text-align: right; margin-top: 8px;" id="searchResult"></div>
+        </div>
+    </div>
+
+    <div class="grid" id="numberGrid"></div>
+    
+    <button class="btn-whatsapp" onclick="gerarImagemWhatsapp()">
+        📲 Gerar Imagem para Status / Compartilhar
+    </button>
+</div>
+
+<script>
+    const TOTAL_NUMBERS = 100;
+    let soldTickets = {}; 
+    let selectedNumbers = new Set();
+    let compradoresAgrupados = {};
+    let compradorSelecionado = null;
+
+    async function loadTickets() {
+        try {
+            const res = await fetch('/tickets');
+            const data = await res.json();
+            soldTickets = {};
+            compradoresAgrupados = {};
+            
+            data.forEach(ticket => { 
+                soldTickets[ticket.number] = { name: ticket.buyer_name, contact: ticket.contact }; 
+                const nome = ticket.buyer_name;
+                const contato = ticket.contact || 'Não informado';
+                if (!compradoresAgrupados[nome]) compradoresAgrupados[nome] = { contato: contato };
+            });
+            
+            renderGrid();
+            renderBuyerList();
+            
+            if (document.getElementById('searchName').value) buscarComprador();
+        } catch (err) {
+            showMsg("Erro ao conectar com o servidor.", "error");
+        }
+    }
+
+    function renderBuyerList(filtro = '') {
+        const listContainer = document.getElementById('buyerList');
+        listContainer.innerHTML = '';
+        let qtdEncontrada = 0;
+        for (const [nome, dados] of Object.entries(compradoresAgrupados)) {
+            if (filtro && !nome.toLowerCase().includes(filtro)) continue;
+            qtdEncontrada++;
+            const div = document.createElement('div');
+            div.className = 'buyer-item';
+            if (compradorSelecionado === nome) div.classList.add('active-buyer');
+            div.onclick = () => destacarComprador(nome);
+            div.innerHTML = `<div class="buyer-name">${nome}</div><div class="buyer-info">📞 ${dados.contato}</div>`;
+            listContainer.appendChild(div);
+        }
+        const resultText = document.getElementById('searchResult');
+        if (filtro && !compradorSelecionado) resultText.textContent = `${qtdEncontrada} resultado(s)`;
+        else if (compradorSelecionado) resultText.textContent = `Visualizando: ${compradorSelecionado}`;
+        else resultText.textContent = `Total: ${Object.keys(compradoresAgrupados).length} comprador(es)`;
+    }
+
+    function destacarComprador(nomeExato) {
+        if (compradorSelecionado === nomeExato) {
+            compradorSelecionado = null;
+            document.getElementById('searchName').value = '';
+        } else {
+            compradorSelecionado = nomeExato;
+            document.getElementById('searchName').value = nomeExato;
+        }
+        buscarComprador();
+    }
+
+    function renderGrid() {
+        const grid = document.getElementById('numberGrid');
+        grid.innerHTML = '';
+        for (let i = 1; i <= TOTAL_NUMBERS; i++) {
+            const div = document.createElement('div');
+            div.id = `num-${i}`;
+            div.classList.add('number');
+            div.textContent = i; 
+            if (soldTickets[i]) {
+                div.classList.add('sold');
+                div.title = `Vendido para: ${soldTickets[i].name}`;
+            } else {
+                div.classList.add('available');
+                if (selectedNumbers.has(i)) div.classList.add('selected');
+                div.onclick = () => toggleNumber(i);
+            }
+            grid.appendChild(div);
+        }
+        calcularPreco();
+        atualizarInputManual();
+    }
+
+    function calcularPreco() {
+        const qtd = selectedNumbers.size;
+        const total = (Math.floor(qtd / 5) * 20) + ((qtd % 5) * 5);
+        document.getElementById('priceDisplay').textContent = `R$ ${total.toFixed(2).replace('.', ',')}`;
+    }
+
+    function toggleNumber(num) {
+        if (selectedNumbers.has(num)) selectedNumbers.delete(num);
+        else selectedNumbers.add(num);
+        renderGrid();
+    }
+
+    function syncFromInput() {
+        const input = document.getElementById('manualNumbers').value;
+        selectedNumbers.clear();
+        if (input.trim() !== '') {
+            input.split(',').forEach(p => {
+                const n = parseInt(p.trim());
+                if (!isNaN(n) && n >= 1 && n <= TOTAL_NUMBERS && !soldTickets[n]) selectedNumbers.add(n);
+            });
+        }
+        renderGrid();
+    }
+
+    function atualizarInputManual() {
+        const input = document.getElementById('manualNumbers');
+        if (document.activeElement !== input) {
+            input.value = Array.from(selectedNumbers).sort((a, b) => a - b).join(', ');
+        }
+    }
+
+    function buscarComprador() {
+        const termo = document.getElementById('searchName').value.toLowerCase().trim();
+        if (compradorSelecionado && termo !== compradorSelecionado.toLowerCase()) compradorSelecionado = null;
+        renderBuyerList(termo);
+        for (let i = 1; i <= TOTAL_NUMBERS; i++) {
+            const el = document.getElementById(`num-${i}`);
+            el.classList.remove('highlight', 'dimmed');
+            if (termo === '') continue;
+            if (soldTickets[i] && soldTickets[i].name.toLowerCase().includes(termo)) el.classList.add('highlight');
+            else el.classList.add('dimmed');
+        }
+    }
+
+    async function registrarVenda() {
+        const name = document.getElementById('buyerName').value.trim();
+        const contact = document.getElementById('buyerContact').value.trim();
+        if (!name) return showMsg("Digite o nome do comprador.", "error");
+        if (selectedNumbers.size === 0) return showMsg("Selecione ao menos um número.", "error");
+
+        try {
+            const res = await fetch('/tickets', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ numbers: Array.from(selectedNumbers), buyer_name: name, contact: contact })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                showMsg(data.message, "success");
+                document.getElementById('buyerName').value = '';
+                document.getElementById('buyerContact').value = '';
+                document.getElementById('manualNumbers').value = '';
+                document.getElementById('searchName').value = '';
+                compradorSelecionado = null;
+                selectedNumbers.clear();
+                loadTickets();
+            } else {
+                showMsg(data.error, "error");
+            }
+        } catch (err) {
+            showMsg("Erro de comunicação com a API.", "error");
+        }
+    }
+
+    // Lógica de Geração da Imagem e Compartilhamento
+    function gerarImagemWhatsapp() {
+        showMsg("Gerando imagem...", "success");
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        
+        // Carrega a imagem base
+        img.src = 'template.jpg'; 
+        
+        img.onload = () => {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+
+            // Mapeamento da grade baseado na proporção da sua imagem enviada
+            // Se os quadrados ficarem fora do lugar, basta ajustar estas porcentagens:
+            const startX = img.width * 0.04;    // 4% da borda esquerda
+            const endX = img.width * 0.96;      // 96% até a borda direita
+            const startY = img.height * 0.335;  // 33.5% do topo (abaixo do cabeçalho)
+            const endY = img.height * 0.635;    // 63.5% até o fim da tabela
+            
+            const gridW = endX - startX;
+            const gridH = endY - startY;
+            const cellW = gridW / 10;
+            const cellH = gridH / 10;
+
+            for (let i = 1; i <= TOTAL_NUMBERS; i++) {
+                if (soldTickets[i]) {
+                    const row = Math.floor((i - 1) / 10);
+                    const col = (i - 1) % 10;
+                    
+                    const x = startX + (col * cellW);
+                    const y = startY + (row * cellH);
+                    
+                    // Pinta o fundo de vermelho semi-transparente
+                    ctx.fillStyle = 'rgba(239, 68, 68, 0.6)';
+                    ctx.fillRect(x, y, cellW, cellH);
+
+                    // Desenha um "X" vermelho forte por cima
+                    ctx.beginPath();
+                    ctx.moveTo(x + 5, y + 5);
+                    ctx.lineTo(x + cellW - 5, y + cellH - 5);
+                    ctx.moveTo(x + cellW - 5, y + 5);
+                    ctx.lineTo(x + 5, y + cellH - 5);
+                    ctx.strokeStyle = 'rgba(220, 38, 38, 0.9)';
+                    ctx.lineWidth = 4;
+                    ctx.stroke();
+                }
+            }
+
+            canvas.toBlob(async (blob) => {
+                const file = new File([blob], 'rifa-atualizada.jpg', { type: 'image/jpeg' });
+                
+                // Tenta abrir o compartilhamento nativo do celular (WhatsApp, Insta, etc)
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    try {
+                        await navigator.share({
+                            files: [file],
+                            title: 'Rifa Atualizada',
+                            text: 'Garanta já o seu número na nossa rifa!'
+                        });
+                    } catch (err) {
+                        baixarImagemFallback(blob); // Se o usuário cancelar, faz download
+                    }
+                } else {
+                    baixarImagemFallback(blob); // Em PC, faz download direto
+                }
+            }, 'image/jpeg', 0.9);
+        };
+
+        img.onerror = () => {
+            showMsg("Erro: Imagem 'template.jpg' não encontrada na pasta.", "error");
+        }
+    }
+
+    function baixarImagemFallback(blob) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'rifa-atualizada.jpg';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showMsg("Imagem baixada com sucesso!", "success");
+    }
+
+    let msgTimeout;
+    function showMsg(text, type) {
+        const msgEl = document.getElementById('feedbackMsg');
+        msgEl.textContent = text;
+        msgEl.className = `message show ${type}`;
+        clearTimeout(msgTimeout);
+        msgTimeout = setTimeout(() => msgEl.classList.remove('show'), 3000);
+    }
+
+    loadTickets();
+</script>
+
+</body>
+</html>
