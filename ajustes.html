@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ajuste Fino da Grade</title>
+    <style>
+        :root { --primary: #4361ee; --bg-color: #f8fafc; --card-bg: #ffffff; --border: #e2e8f0; }
+        body { font-family: system-ui, sans-serif; background: var(--bg-color); margin: 0; padding: 20px; display: flex; gap: 20px; }
+        
+        .sidebar { background: var(--card-bg); padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); width: 350px; flex-shrink: 0; display: flex; flex-direction: column; gap: 15px; }
+        h3 { margin: 0 0 10px 0; color: #1e293b; }
+        
+        .control-group { display: flex; flex-direction: column; gap: 5px; }
+        .control-group label { font-size: 14px; font-weight: bold; color: #475569; display: flex; justify-content: space-between; }
+        input[type="range"] { width: 100%; cursor: pointer; }
+        
+        .code-box { background: #1e293b; color: #10b981; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 13px; white-space: pre-wrap; margin-top: 10px; }
+        
+        .canvas-container { flex-grow: 1; background: var(--card-bg); padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); text-align: center; overflow: auto; max-height: 90vh; }
+        canvas { max-width: 100%; height: auto; border: 1px solid var(--border); }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <h3>🎛️ Controles da Grade (%)</h3>
+        
+        <div class="control-group">
+            <label>Margem Esquerda (startX) <span id="valStartX">5.0%</span></label>
+            <input type="range" id="startX" min="0" max="20" step="0.1" value="5">
+        </div>
+        
+        <div class="control-group">
+            <label>Margem Direita (endX) <span id="valEndX">95.0%</span></label>
+            <input type="range" id="endX" min="80" max="100" step="0.1" value="95">
+        </div>
+        
+        <div class="control-group">
+            <label>Margem Superior (startY) <span id="valStartY">31.0%</span></label>
+            <input type="range" id="startY" min="10" max="50" step="0.1" value="31">
+        </div>
+        
+        <div class="control-group">
+            <label>Margem Inferior (endY) <span id="valEndY">65.0%</span></label>
+            <input type="range" id="endY" min="50" max="100" step="0.1" value="65">
+        </div>
+
+        <h3>📋 Copie este código:</h3>
+        <p style="font-size: 12px; color: #64748b; margin: 0;">Cole isso dentro do seu <b>index.html</b>, substituindo as linhas de mapeamento da grade.</p>
+        <div class="code-box" id="codeOutput"></div>
+    </div>
+
+    <div class="canvas-container">
+        <canvas id="previewCanvas"></canvas>
+    </div>
+
+<script>
+    const canvas = document.getElementById('previewCanvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    
+    // Controles
+    const inputs = ['startX', 'endX', 'startY', 'endY'];
+    const state = { startX: 5, endX: 95, startY: 31, endY: 65 };
+
+    img.src = 'template.jpg'; // Carrega sua imagem base
+    
+    img.onload = () => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        atualizarGrade();
+    };
+
+    inputs.forEach(id => {
+        const el = document.getElementById(id);
+        el.addEventListener('input', (e) => {
+            state[id] = parseFloat(e.target.value);
+            document.getElementById(`val${id.charAt(0).toUpperCase() + id.slice(1)}`).textContent = state[id].toFixed(1) + '%';
+            atualizarGrade();
+        });
+    });
+
+    function atualizarGrade() {
+        // Limpa e desenha a imagem original
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+
+        // Calcula os pixels reais baseados na porcentagem
+        const pxStartX = img.width * (state.startX / 100);
+        const pxEndX = img.width * (state.endX / 100);
+        const pxStartY = img.height * (state.startY / 100);
+        const pxEndY = img.height * (state.endY / 100);
+
+        const gridW = pxEndX - pxStartX;
+        const gridH = pxEndY - pxStartY;
+        const cellW = gridW / 10;
+        const cellH = gridH / 10;
+
+        // Desenha a área total da grade (borda azul)
+        ctx.strokeStyle = '#4361ee';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(pxStartX, pxStartY, gridW, gridH);
+
+        // Desenha as linhas internas e um 'X' vermelho de exemplo em todos os quadros
+        ctx.strokeStyle = 'rgba(67, 97, 238, 0.5)';
+        ctx.lineWidth = 2;
+
+        for (let row = 0; row < 10; row++) {
+            for (let col = 0; col < 10; col++) {
+                const x = pxStartX + (col * cellW);
+                const y = pxStartY + (row * cellH);
+                
+                // Desenha a célula
+                ctx.strokeRect(x, y, cellW, cellH);
+
+                // Desenha o 'X' para visualizar o alinhamento
+                ctx.beginPath();
+                ctx.moveTo(x + 5, y + 5);
+                ctx.lineTo(x + cellW - 5, y + cellH - 5);
+                ctx.moveTo(x + cellW - 5, y + 5);
+                ctx.lineTo(x + 5, y + cellH - 5);
+                ctx.strokeStyle = 'rgba(220, 38, 38, 0.8)';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                ctx.strokeStyle = 'rgba(67, 97, 238, 0.5)'; // Volta pra cor da grade
+            }
+        }
+
+        // Atualiza a caixa de código
+        document.getElementById('codeOutput').textContent = 
+`const startX = img.width * ${state.startX / 100};
+const endX = img.width * ${state.endX / 100};
+const startY = img.height * ${state.startY / 100};
+const endY = img.height * ${state.endY / 100};`;
+    }
+</script>
+
+</body>
+</html>
