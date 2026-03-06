@@ -256,14 +256,12 @@
         }
     }
 
-    // Lógica de Geração da Imagem e Compartilhamento
     function gerarImagemWhatsapp() {
         showMsg("Gerando imagem...", "success");
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         const img = new Image();
         
-        // Carrega a imagem base
         img.src = 'template.jpg'; 
         
         img.onload = () => {
@@ -271,12 +269,11 @@
             canvas.height = img.height;
             ctx.drawImage(img, 0, 0);
 
-            // Mapeamento da grade baseado na proporção da sua imagem enviada
-            // Se os quadrados ficarem fora do lugar, basta ajustar estas porcentagens:
-            const startX = img.width * 0.04;    // 4% da borda esquerda
-            const endX = img.width * 0.96;      // 96% até a borda direita
-            const startY = img.height * 0.335;  // 33.5% do topo (abaixo do cabeçalho)
-            const endY = img.height * 0.635;    // 63.5% até o fim da tabela
+            // Ajustes finos aplicados
+            const startX = img.width * 0.05;    
+            const endX = img.width * 0.95;      
+            const startY = img.height * 0.31;   
+            const endY = img.height * 0.65;     
             
             const gridW = endX - startX;
             const gridH = endY - startY;
@@ -291,11 +288,9 @@
                     const x = startX + (col * cellW);
                     const y = startY + (row * cellH);
                     
-                    // Pinta o fundo de vermelho semi-transparente
                     ctx.fillStyle = 'rgba(239, 68, 68, 0.6)';
                     ctx.fillRect(x, y, cellW, cellH);
 
-                    // Desenha um "X" vermelho forte por cima
                     ctx.beginPath();
                     ctx.moveTo(x + 5, y + 5);
                     ctx.lineTo(x + cellW - 5, y + cellH - 5);
@@ -310,7 +305,6 @@
             canvas.toBlob(async (blob) => {
                 const file = new File([blob], 'rifa-atualizada.jpg', { type: 'image/jpeg' });
                 
-                // Tenta abrir o compartilhamento nativo do celular (WhatsApp, Insta, etc)
                 if (navigator.canShare && navigator.canShare({ files: [file] })) {
                     try {
                         await navigator.share({
@@ -319,16 +313,16 @@
                             text: 'Garanta já o seu número na nossa rifa!'
                         });
                     } catch (err) {
-                        baixarImagemFallback(blob); // Se o usuário cancelar, faz download
+                        baixarImagemFallback(blob); 
                     }
                 } else {
-                    baixarImagemFallback(blob); // Em PC, faz download direto
+                    baixarImagemFallback(blob); 
                 }
             }, 'image/jpeg', 0.9);
         };
 
         img.onerror = () => {
-            showMsg("Erro: Imagem 'template.jpg' não encontrada na pasta.", "error");
+            showMsg("Erro: Imagem 'template.jpg' não encontrada.", "error");
         }
     }
 
